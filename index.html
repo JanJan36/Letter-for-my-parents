@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Special Surprise</title>
+    
+    <!-- Importing Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Lora:ital,wght@0,400;0,600;1,400&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome for the Lock Icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* --- CSS Variables & Reset --- */
+        :root {
+            --bg-color: #f4f1ea;
+            --paper-color: #ffffff;
+            --text-color: #2c2c2c;
+            --accent-color: #8c7b6c;
+            --vault-bg: #2c3e50;
+            --font-heading: 'Playfair Display', serif;
+            --font-body: 'Lora', serif;
+            --font-signature: 'Great Vibes', cursive;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: radial-gradient(#e0ded8 1px, transparent 1px);
+            background-size: 20px 20px;
+            color: var(--text-color);
+            font-family: var(--font-body);
+            line-height: 1.8;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden; /* Prevent scroll during animations */
+        }
+
+        /* --- THE VAULT (Lock Screen) --- */
+        #vault-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--vault-bg);
+            background-image: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 1s ease, visibility 1s ease;
+        }
+
+        .vault-content {
+            text-align: center;
+            color: white;
+            max-width: 400px;
+            width: 90%;
+            animation: fadeInVault 1s ease-out;
+        }
+
+        .lock-icon {
+            font-size: 4rem;
+            color: #f1c40f;
+            margin-bottom: 1.5rem;
+            text-shadow: 0 0 15px rgba(241, 196, 15, 0.5);
+        }
+
+        .vault-content h2 {
+            font-family: var(--font-heading);
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .vault-content p {
+            margin-bottom: 2rem;
+            color: #bdc3c7;
+            font-size: 1rem;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        #magic-word-input {
+            width: 100%;
+            padding: 12px 15px;
+            border-radius: 30px;
+            border: 2px solid #7f8c8d;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 1rem;
+            text-align: center;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        #magic-word-input::placeholder {
+            color: rgba(255,255,255,0.5);
+        }
+
+        #magic-word-input:focus {
+            border-color: #f1c40f;
+            background: rgba(255,255,255,0.2);
+        }
+
+        .unlock-btn {
+            background-color: #f1c40f;
+            color: #2c3e50;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-family: sans-serif;
+        }
+
+        .unlock-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(241, 196, 15, 0.4);
+        }
+
+        .error-message {
+            color: #e74c3c;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            height: 20px; /* Reserve space */
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        /* Shake Animation for Wrong Password */
+        .shake {
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            50% { transform: translateX(10px); }
+            75% { transform: translateX(-10px); }
+            100% { transform: translateX(0); }
+        }
+
+        /* --- THE LETTER (Initially Hidden) --- */
+        .letter-wrapper {
+            width: 100%;
+            max-width: 800px;
+            opacity: 0; /* Start invisible */
+            /* The "Picking Up" Animation Setup */
+            transform: translateY(100px) scale(0.9);
+            filter: blur(10px);
+            transition: all 3.5s cubic-bezier(0.25, 1, 0.5, 1);
+            pointer-events: none; /* Prevent clicks while hidden */
+        }
+
+        /* Class added by JS when unlocked */
+        .letter-revealed {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            filter: blur(0);
+            pointer-events: auto;
+        }
+
+        /* --- Original Letter Styling --- */
+        .paper-container {
+            background-color: var(--paper-color);
+            width: 100%;
+            padding: 4rem;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.15), 0 5px 15px rgba(0,0,0,0.05);
+            border-radius: 4px;
+            position: relative;
+        }
+
+        .paper-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background-color: var(--accent-color);
+        }
+
+        h1 {
+            font-family: var(--font-heading);
+            font-size: 2.5rem;
+            text-align: center;
+            margin-bottom: 0.5rem;
+            color: var(--accent-color);
+        }
+
+        .subtitle {
+            text-align: center;
+            font-style: italic;
+            color: #666;
+            margin-bottom: 2.5rem;
+            font-size: 1.1rem;
+        }
+
+        p {
+            margin-bottom: 1.5rem;
+            font-size: 1.15rem;
+            text-align: justify;
+        }
+
+        .letter-content p:first-of-type::first-letter {
+            float: left;
+            font-family: var(--font-heading);
+            font-size: 4.5rem;
+            line-height: 0.8;
+            padding-right: 0.5rem;
+            padding-top: 0.2rem;
+            color: var(--accent-color);
+        }
+
+        .photo-wrapper {
+            width: 100%;
+            margin: 2.5rem 0;
+            text-align: center;
+        }
+
+        .photo-frame {
+            display: inline-block;
+            padding: 12px;
+            border: 1px solid #ddd;
+            background: #fff;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transform: rotate(-1deg);
+            transition: transform 0.3s ease;
+        }
+
+        .photo-frame:hover {
+            transform: rotate(0deg) scale(1.01);
+        }
+
+        .photo-frame img {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            max-height: 450px;
+            filter: sepia(0.15) contrast(0.95);
+            border: 1px solid #eee;
+        }
+
+        .caption {
+            margin-top: 0.8rem;
+            font-size: 0.9rem;
+            color: #888;
+            font-style: italic;
+            font-family: var(--font-heading);
+        }
+
+        .signature-area {
+            margin-top: 3rem;
+            text-align: right;
+        }
+
+        .signature-img {
+            font-family: var(--font-signature);
+            font-size: 3rem;
+            color: var(--accent-color);
+            line-height: 1;
+            margin-bottom: 0.5rem;
+            display: inline-block;
+        }
+
+        .date {
+            font-size: 0.95rem;
+            color: #666;
+            font-family: sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .footer-note {
+            margin-top: 3rem;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #aaa;
+            border-top: 1px solid #eee;
+            padding-top: 1rem;
+        }
+
+        /* Animations */
+        @keyframes fadeInVault {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 600px) {
+            .paper-container { padding: 2rem; }
+            h1 { font-size: 2rem; }
+            .photo-frame { padding: 8px; transform: none; }
+            p { font-size: 1rem; text-align: left; }
+            #vault-overlay h2 { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- STEP 1: THE VAULT OVERLAY -->
+    <div id="vault-overlay">
+        <div class="vault-content">
+            <div class="lock-icon"><i class="fas fa-lock"></i></div>
+            <h2>The Family Vault</h2>
+            <p>This letter is protected by magic. Please enter the magic word to reveal it.</p>
+            
+            <div class="input-group">
+                <input type="text" id="magic-word-input" placeholder="Enter Magic Word..." autocomplete="off">
+            </div>
+            
+            <button class="unlock-btn" id="unlock-btn">Unlock Letter</button>
+            <div class="error-message" id="error-msg">Incorrect magic word. Try again!</div>
+        </div>
+    </div>
+
+    <!-- STEP 2: THE LETTER (Hidden behind the vault) -->
+    <main class="letter-wrapper" id="letter">
+        <div class="paper-container">
+            <header>
+                <h1>Dearest Mama & Papa,</h1>
+                <div class="subtitle">A few words of gratitude for everything you’ve done</div>
+            </header>
+
+            <article class="letter-content">
+                <p>
+                    As I sit down to write this, I find myself overwhelmed by how much has changed over the years, yet how deeply your love has remained the constant foundation of my life. There are so many moments in a day that pass by unsaid, so many small sacrifices that go unnoticed, and I wanted to take this moment to simply say: Thank you.
+                </p>
+
+                <figure class="photo-wrapper">
+                    <div class="photo-frame">
+                        <!-- Replace 'src' with your actual photo path (e.g., 'family.jpg') -->
+                        <img src="Mamakagpapa.jpg" alt="A cherished family photo">
+                    </div>
+                    <figcaption class="caption">"The roots of our family tree"</figcaption>
+                </figure>
+
+                <p>
+                    Looking back at the memories we’ve shared, I realize now just how much patience and strength it took to raise me. You were my first teachers, my safest harbor, and my biggest cheerleaders. Whether it was helping me through difficult times or celebrating my smallest victories, your support never wavered.
+                </p>
+                
+                <p>
+                    I appreciate the early mornings, the late nights, the lessons you taught me not just with words but with your actions. You showed me what kindness looks like, what resilience means, and how to love without condition. I am who I am today because of you.
+                </p>
+
+                <p>
+                    I want to promise you that I will carry these values forward. I hope to make you proud, not just through my achievements, but by being the kind, compassionate person you raised me to be. Please know that every day, I am grateful for the gift of having you as my parents.
+                </p>
+
+                <div class="signature-area">
+                    <div class="signature-img">Your loving son,<br> John Rey A. Castillo</div>
+                    <div class="date">December 18, 2025</div>
+                </div>
+            </article>
+
+            <footer class="footer-note">
+                Created with love and appreciation by Pasaway nyo nga bata HAHAHAHA
+            </footer>
+        </div>
+    </main>
+
+    <script>
+        // --- Logic for the Vault ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const input = document.getElementById('magic-word-input');
+            const btn = document.getElementById('unlock-btn');
+            const overlay = document.getElementById('vault-overlay');
+            const letter = document.getElementById('letter');
+            const errorMsg = document.getElementById('error-msg');
+            const lockIcon = document.querySelector('.lock-icon i');
+
+            // The correct answer (Case insensitive)
+            const SECRET_PHRASE = "Happy Parents Day";
+
+            function checkPassword() {
+                const userText = input.value.trim();
+
+                // Check if input matches the secret phrase (ignoring case)
+                if (userText.toLowerCase() === SECRET_PHRASE.toLowerCase()) {
+                    unlockVault();
+                } else {
+                    showError();
+                }
+            }
+
+            function unlockVault() {
+                lockIcon.className = "fas fa-lock-open";
+                lockIcon.style.color = "#2ecc71"; 
+
+                overlay.style.opacity = '0';
+                overlay.style.visibility = 'hidden';
+
+                // 3. Trigger the letter animation (The "Pick Up" effect)
+                // We add a tiny delay so the vault starts disappearing before the letter rises
+                setTimeout(() => {
+                    letter.classList.add('letter-revealed');
+                }, 300);
+            }
+
+            function showError() {
+                // Show error text
+                errorMsg.style.opacity = '1';
+                
+                // Add shake animation to input
+                const inputGroup = document.querySelector('.input-group');
+                inputGroup.classList.add('shake');
+                
+                // Remove shake class after animation ends so it can be triggered again
+                setTimeout(() => {
+                    inputGroup.classList.remove('shake');
+                }, 500);
+
+                // Clear input
+                input.value = '';
+                input.focus();
+            }
+
+            // Listen for button click
+            btn.addEventListener('click', checkPassword);
+
+            // Listen for "Enter" key in input field
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    checkPassword();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
